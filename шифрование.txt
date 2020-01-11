@@ -1,0 +1,37 @@
+from Crypto.Signature import PKCS1_v1_5
+from Crypto.Hash import SHA
+from Crypto.PublicKey import RSA
+from Crypto.Cipher import PKCS1_OAEP
+from Crypto.Cipher import AES
+from Crypto import Random
+
+
+f = open('c:\cipher\plaintext.txt','rb')
+plaintext = f.read(); f.close()
+privatekey = RSA.importKey(open('c:\cipher\\alisaprivatekey.txt','rb').read())
+myhash = SHA.new(plaintext)
+signature = PKCS1_v1_5.new(privatekey)
+signature = signature.sign(myhash)
+
+publickey = RSA.importKey(open('c:\cipher\\bobpublickey.txt','rb').read())
+cipherrsa = PKCS1_OAEP.new(publickey)
+sig = cipherrsa.encrypt(signature[:128])
+sig = sig + cipherrsa.encrypt(signature[128:])
+f = open('c:\cipher\signature.txt','wb')
+f.write(bytes(sig)); f.close()
+
+sessionkey = Random.new().read(32) # 256 bit
+
+f = open('c:\cipher\plaintext.txt','rb')
+plaintext = f.read(); f.close()
+iv = Random.new().read(16) # 128 bit
+obj = AES.new(sessionkey, AES.MODE_CFB, iv)
+ciphertext = iv + obj.encrypt(plaintext)
+f = open('c:\cipher\plaintext.txt','wb')
+f.write(bytes(ciphertext)); f.close()
+
+publickey = RSA.importKey(open('c:\cipher\\bobpublickey.txt','rb').read())
+cipherrsa = PKCS1_OAEP.new(publickey)
+sessionkey = cipherrsa.encrypt(sessionkey)
+f = open('c:\cipher\sessionkey.txt','wb')
+f.write(bytes(sessionkey)); f.close()
